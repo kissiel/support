@@ -1,0 +1,238 @@
+#!/bin/sh
+# Create a virtualenv for working with plainbox.
+#
+# This ensures that 'plainbox' command exists and is in PATH and that the
+# plainbox module is correctly located can be imported.
+#
+# This is how Zygmunt Krynicki works, feel free to use or adjust to your needs
+
+CHECKBOX_VENV_PATH=
+# Parse arguments:
+while [ -n "$1" ]; do
+    case "$1" in
+        --help|-h)
+            echo "Usage: mk-venv.sh [LOCATION]"
+            echo ""
+            echo "Create a virtualenv for working with checkbox in LOCATION"
+            exit 0
+            ;;
+        *)
+            if [ -z "$CHECKBOX_VENV_PATH" ]; then
+                if echo "$1" | grep -q '^/'; then
+                    CHECKBOX_VENV_PATH="$1"
+                else
+                    CHECKBOX_VENV_PATH="$(pwd)/$1"
+                fi
+                shift
+            else
+                echo "Error: too many arguments: '$1'"
+                exit 1
+            fi
+            ;;
+    esac
+done
+
+# Find the top of checkbox tree
+if [ "$CHECKBOX_TOP" = "" ]; then
+    CHECKBOX_TOP="$(git rev-parse --show-toplevel 2>/dev/null)"
+fi
+if [ "$CHECKBOX_TOP" = "" ]; then
+    CHECKBOX_TOP="$(bzr root)"
+fi
+
+# Export it for all the sub-scripts
+export CHECKBOX_TOP
+
+
+# Apply defaults to arguments without values
+if [ -z "$CHECKBOX_VENV_PATH" ]; then
+    # Use sensible defaults for vagrant
+    if [ "$LOGNAME" = "vagrant" ]; then
+        CHECKBOX_VENV_PATH=/tmp/venv
+    else
+        # Use per-branch venv for bzr folks
+        if [ -d "$CHECKBOX_TOP/.bzr" ]; then
+            CHECKBOX_VENV_PATH=/tmp/$(bzr nick)
+        else
+            CHECKBOX_VENV_PATH=venv.$(hostname)
+        fi
+    fi
+fi
+
+# Ensure that CHECKBOX_VENV_PATH is an absolute path
+if ! echo "$CHECKBOX_VENV_PATH" | grep -q '^/'; then
+    CHECKBOX_VENV_PATH="$(pwd)/$CHECKBOX_VENV_PATH"
+fi
+
+# Check if we can create a virtualenv
+if [ ! -d $(dirname $CHECKBOX_VENV_PATH) ]; then
+    echo "E: This script requires $(dirname $CHECKBOX_VENV_PATH) directory to exist"
+    echo "E: You can use different directory by passing it as argument"
+    echo "E: For a quick temporary location just pass /tmp/venv"
+    exit 1
+fi
+
+# Check if there's one already there
+if [ -d $CHECKBOX_VENV_PATH ]; then
+    echo "E: $CHECKBOX_VENV_PATH seems to already exist"
+    exit 1
+fi
+
+# Try to guess where we are running
+if [ -f /etc/os-release ]; then
+    # Load /etc/os-release if present
+    . /etc/os-release
+elif [ "$(which lsb_release)" != "" ]; then
+    # Emulate /etc/os-release for well-known Ubuntu releases that lack it
+    # Ubuntu ships /etc/os-release starting with 12.04.2 or 12.10
+    # https://bugs.launchpad.net/ubuntu/+source/base-files/+bug/947236
+    case "$(lsb_release --short --description)" in
+        "Ubuntu 12.04 LTS")
+            NAME="Ubuntu"
+            VERSION="12.04 LTS, Precise Pangolin"
+            ID=ubuntu
+            ID_LIKE=debian
+            PRETTY_NAME="Ubuntu precise (12.04 LTS)"
+            VERSION_ID="12.04"
+            ;;
+        "Ubuntu 12.04.1 LTS")
+            NAME="Ubuntu"
+            VERSION="12.04.1 LTS, Precise Pangolin"
+            ID=ubuntu
+            ID_LIKE=debian
+            PRETTY_NAME="Ubuntu precise (12.04.1 LTS)"
+            VERSION_ID="12.04"
+            ;;
+        *)
+            NAME=Linux
+            ;;
+    esac
+fi
+
+# Add missing ANSI_COLOR to Ubuntu if missing
+if [ "$ID" = "ubuntu" -a -z "$ANSI_COLOR" ]; then
+    ANSI_COLOR="0;35"
+fi
+
+# Determine if this is a fully or partially or a not supported platform
+#
+# Non Ubuntu systems are not tested as they don't have the required checkbox
+# package. Debian might be supported once we have JobBox and stuff like Fedora
+# would need a whole new approach but patches are welcome [CLA required] 
+PLATFORM_SUPPORT=none
+NEEDS_PPAS=no
+case "$ID-$VERSION_ID" in
+    ubuntu-15.04)
+        PLATFORM_SUPPORT=full
+        ;;
+    ubuntu-14.10)
+        PLATFORM_SUPPORT=full
+        ;;
+    ubuntu-14.04)
+        PLATFORM_SUPPORT=full
+        ;;
+    ubuntu-12.10|ubuntu-13.04)
+        PLATFORM_SUPPORT=partial
+        NEEDS_PPAS=yes
+        ;;
+    ubuntu-12.04)
+        PLATFORM_SUPPORT=full
+        NEEDS_PPAS=yes
+        ;;
+    ubuntu-*)
+        PLATFORM_SUPPORT=partial
+        ;;
+    elementary-0.2)
+        PLATFORM_SUPPORT=partial
+        ;;
+    fedora-19|fedora-20|fedora-21)
+        PLATFORM_SUPPORT=partial
+        ;;
+esac
+
+# Inform the user about platform support
+case $PLATFORM_SUPPORT in
+    none)
+        echo "E: Only Ubuntu is supported by this script."
+        echo "E: If you are interested in using it with your distribution"
+        echo "E: then please join us in #checkbox on freenode"
+        echo
+        echo "E: Alternatively you can use vagrant to develop plainbox"
+        echo "E: on any operating system, even Windows ;-)"
+        echo
+        echo "E: See: http://www.vagrantup.com/ for details"
+        exit 1
+        ;;
+    partial)
+        echo "W: NOTE: The platform you are running on has no official maintainer"
+        echo "W: Things might work but your mileage may vary"
+        ;;
+    full)
+        ;;
+esac
+
+# Start setting things up
+CTS="\\x1b["
+/bin/echo -e "I: setting ${CTS}37;1m{Plain,Check}Box${CTS}0m development on ${CTS}${ANSI_COLOR}m${PRETTY_NAME}${CTS}0m..."
+
+if [ "$NEEDS_PPAS" = yes ]; then
+    # Add any necessary PPA repositories and run apt-get update if required
+    if $CHECKBOX_TOP/support/install-ppa-dependencies && [ "$(which dpkg 2>/dev/null)" = "" ]; then
+        # we need to update our dependencies
+        sudo apt-get update
+    fi
+fi
+
+# Ensure that certain Debian dependencies are *not* installed
+$CHECKBOX_TOP/support/remove-deb-anty-dependencies
+
+# Ensure that all Debian dependencies are installed
+$CHECKBOX_TOP/support/install-deb-dependencies
+
+# Ensure that all Fedora dependencies are installed
+$CHECKBOX_TOP/support/install-rpm-dependencies
+
+# Create a virtualenv with python3
+echo "I: creating virtualbox in $CHECKBOX_VENV_PATH"
+virtualenv --quiet --system-site-packages --python=/usr/bin/python3 $CHECKBOX_VENV_PATH
+
+# Add PLAINBOX_LOCALE_DIR to the venv
+echo "export PLAINBOX_LOCALE_DIR=$CHECKBOX_TOP/plainbox/build/mo" >> $CHECKBOX_VENV_PATH/bin/activate
+
+# Add CHECKBOX_NG_LOCALE_DIR to the venv
+echo "export CHECKBOX_NG_LOCALE_DIR=$CHECKBOX_TOP/checkbox-ng/build/mo" >> $CHECKBOX_VENV_PATH/bin/activate
+
+# Add CHECKBOX_PROVIDER_LOCALE_DIR to the venv
+echo "export CHECKBOX_PROVIDER_LOCALE_DIR=$CHECKBOX_TOP/providers/plainbox-provider-checkbox/build/mo" >> $CHECKBOX_VENV_PATH/bin/activate
+
+# Add PROVIDERPATH to the venv
+echo "export PROVIDERPATH=$CHECKBOX_VENV_PATH/share/plainbox-providers-1" >> $CHECKBOX_VENV_PATH/bin/activate
+mkdir -p "$CHECKBOX_VENV_PATH/share/plainbox-providers-1"
+
+# Activate the virtualenv 
+. $CHECKBOX_VENV_PATH/bin/activate
+
+# Make sure that external-tarballs is ready
+$CHECKBOX_TOP/support/get-external-tarballs
+
+# Make sure that checkbox-packaging is ready
+$CHECKBOX_TOP/support/get-checkbox-packaging
+
+# Install all the python dependencies
+$CHECKBOX_TOP/support/install-pip-dependencies
+
+# Develop all the local projects
+$CHECKBOX_TOP/support/develop-projects
+
+# Develop all the local providers 
+$CHECKBOX_TOP/support/develop-providers
+
+# Enable tab-completion.
+# NOTE: This might be totally useless but hey,
+# if someone has sourced this script it will work.
+. $CHECKBOX_TOP/support/enable-tab-completion
+
+echo "To activate your virtualenv run:"
+echo "$ . $CHECKBOX_VENV_PATH/bin/activate"
+echo "To enable tab completion run:"
+echo "$ . $CHECKBOX_TOP/support/enable-tab-completion"
