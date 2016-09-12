@@ -1,1 +1,70 @@
-support/test-with-coverage
+#!/bin/sh
+# This file is part of Checkbox.
+#
+# Copyright 2013 Canonical Ltd.
+# Written by:
+#   Zygmunt Krynicki <zygmunt.krynicki@canonical.com>
+#
+# Checkbox is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Checkbox is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Checkbox.  If not, see <http://www.gnu.org/licenses/>.
+
+# Helper script to run coverage testing
+# =====================================
+
+# XXX: Requires activated virtualenv with coverage
+# It *may* work in other situations so this is not enforced
+
+# Disable all kinds of locale support
+export LANG=
+export LANGUAGE=
+export LC_ALL=C.UTF-8
+
+# On recent enough Debian/Ubuntu you can run this with python3-coverage (or
+# python3.4-coverage) to run coverage with standard packages, without
+# virtualenv. Everywhere else the default 'coverage3' should work fine.
+#
+# Because python3-coverage is still broken
+coverage=${1:-coverage3}
+
+# Run plainbox self-test, pass --after-reexec to fake the internal re-exec that
+# it performs (this seems to fail when invoked this way as it assumes it knows
+# to run plainbox self-test which we are not doing here)
+$coverage run --branch --module plainbox self-test \
+    --after-reexec \
+    --unit-tests \
+    --fail-fast \
+    --quiet
+
+# Run integrations tests as well, unless --skip-integration
+if [ "$1" != "--skip-integration" ]; then
+    $coverage run --append --branch $(which plainbox) self-test \
+        --after-reexec \
+        --integration-tests \
+        --fail-fast \
+        --quiet
+fi
+
+# Display the non-html report
+$coverage report
+
+# Generate the HTML report
+rm -rf htmlcov
+if [ -n "$VIRTUAL_ENV" ]; then
+    # With the defaults $VIRTUAL_ENV might be in /ramdisk which might be a
+    # tmpfs. Generating coverage data there is way faster and better on SSDs
+    rm -rf "$VIRTUAL_ENV/htmlcov"
+    mkdir "$VIRTUAL_ENV/htmlcov"
+    ln -s $VIRTUAL_ENV/htmlcov htmlcov
+fi
+$coverage html
+echo "The HTML report is now ready in htmlcov" 
