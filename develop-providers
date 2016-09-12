@@ -34,8 +34,9 @@ if [ "$PROVIDERPATH" = "" ]; then
     exit 101
 fi
 
-for provider in $CHECKBOX_TOP/providers/plainbox-provider-*; do
-    provider=$(basename "$provider")
-    echo "I: running 'develop' on $provider"
-    ( cd $CHECKBOX_TOP/providers/$provider && python3 manage.py develop --force --directory=$PROVIDERPATH )
-done
+# FIXME: Re-develop those from their future git repo
+#for provider in $CHECKBOX_TOP/providers/plainbox-provider-*; do
+#    provider=$(basename "$provider")
+#    echo "I: running 'develop' on $provider"
+#    ( cd $CHECKBOX_TOP/providers/$provider && python3 manage.py develop --force --directory=$PROVIDERPATH )
+#done
