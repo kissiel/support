@@ -1,0 +1,70 @@
+#!/usr/bin/python3
+# This file is part of Checkbox.
+#
+# Copyright 2016 Canonical Ltd.
+# Written by:
+#   Sylvain Pineau <sylvain.pineau@canonical.com>
+#
+# Checkbox is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 3,
+# as published by the Free Software Foundation.
+#
+# Checkbox is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Checkbox.  If not, see <http://www.gnu.org/licenses/>.
+
+"""
+Kicks off a snap build in Launchpad.
+"""
+
+import os
+import sys
+
+from launchpadlib.launchpad import Launchpad
+from lazr.restfulclient.errors import BadRequest
+from argparse import ArgumentParser
+
+
+def main():
+    parser = ArgumentParser('Invoke a snap build')
+    parser.add_argument('snap', help="name of the snap")
+    parser.add_argument('--owner', '-o',
+                        help="The owner of this snap", default='checkbox-dev')
+    parser.add_argument('--series', '-s',
+                        help="Ubuntu series", default='xenial')
+    parser.add_argument('--arch', '-a',
+                        help="targeted architecture", default='amd64')
+    parser.add_argument("--credentials",
+                        help="Specify launchpad credentials", metavar="CRED",
+                        default=os.getenv("LP_CREDENTIALS"))
+    args = parser.parse_args()
+
+    lp = Launchpad.login_with(sys.argv[0], 'production', version='devel',
+                              credentials_file=args.credentials)
+    try:
+        snap = lp.snaps.getByName(name=args.snap, owner=lp.people[args.owner])
+    except KeyError:
+        parser.error("{} (owner: {}) was "
+                     "not found in Launchpad.".format(args.snap, args.owner))
+
+    ubuntu = lp.distributions["ubuntu"]
+    archive = ubuntu.main_archive
+    series = ubuntu.getSeries(name_or_version=args.series)
+    arch = series.getDistroArchSeries(archtag=args.arch)
+    try:
+        build = snap.requestBuild(pocket='Updates', archive=archive,
+                                  distro_arch_series=arch)
+        print("Check build status: " + build.web_link)
+    except BadRequest as e:
+        print(e)
+        return 1
+    except:
+        print("Not allowed, check your permissions")
+        return 1
+
+if __name__ == "__main__":
+    sys.exit(main())
