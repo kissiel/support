@@ -37,12 +37,15 @@ if [ "$CHECKBOX_TOP" = "" ]; then
     CHECKBOX_TOP="$(git rev-parse --show-toplevel 2>/dev/null)"
 fi
 if [ "$CHECKBOX_TOP" = "" ]; then
-    CHECKBOX_TOP="$(bzr root)"
+    CHECKBOX_TOP="$(bzr root 2>/dev/null)"
 fi
+if [ "$CHECKBOX_TOP" = "" ]; then
+    CHECKBOX_TOP=$PWD
+fi
+
 
 # Export it for all the sub-scripts
 export CHECKBOX_TOP
-
 
 # Apply defaults to arguments without values
 if [ -z "$CHECKBOX_VENV_PATH" ]; then
@@ -222,10 +225,10 @@ $CHECKBOX_TOP/support/get-checkbox-packaging
 $CHECKBOX_TOP/support/install-pip-dependencies
 
 # Develop all the local projects
-$CHECKBOX_TOP/support/develop-projects
+$CHECKBOX_TOP/support/develop-projects-venv
 
 # Develop all the local providers 
-$CHECKBOX_TOP/support/develop-providers
+$CHECKBOX_TOP/support/develop-providers-venv
 
 # Enable tab-completion.
 # NOTE: This might be totally useless but hey,
