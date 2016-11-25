@@ -351,7 +351,13 @@ class Release(Command):
         """Create and sign the project source tarball."""
         if os.path.exists(os.path.relpath(project+'/manage.py')):
             run(['./manage.py', 'sdist'], cwd=project, check=True)
-        # XXX Add setup.py + make sdist + missing gpg sign commands
+        elif os.path.exists(os.path.relpath(project+'/setup.py')):
+            run(['./setup.py', 'sdist'], cwd=project, check=True)
+            tarball = '{}-{}.tar.gz'.format(project, self.new_version)
+            run(['gpg', '--armor', '--sign', '--detach-sig', tarball],
+                cwd=os.path.join(project, 'dist'), check=True)
+        elif os.path.exists(os.path.relpath(project+'/Makefile')):
+            run(['make', 'sdist'], cwd=project, check=True)
 
     def open_for_development(self, ctx, project):
         """Bump the project version to open a new release for development."""
