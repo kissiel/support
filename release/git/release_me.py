@@ -32,7 +32,14 @@ from guacamole import Command
 
 
 projects = (
-    # 'checkbox-converged',
+    'checkbox-converged',
+    'checkbox-support',
+    'checkbox-ng',
+    'plainbox',
+    'plainbox-provider-checkbox',
+    'plainbox-provider-resource',
+    'plainbox-provider-sru',
+    'plainbox-provider-tpm2',
     'plainbox-provider-certification-client',
     'plainbox-provider-certification-server',
 )
@@ -375,8 +382,11 @@ class Release(Command):
         self.debian_new_version = self.new_version.replace('rc', '~rc')
         archives = glob.glob('{}/dist/*{}.tar.gz'.format(
             project, self.new_version))
+        deb_project = project
+        if project == 'plainbox-provider-resource':
+            deb_project = 'plainbox-provider-resource-generic'
         self.orig_tarball = '{}_{}.orig.tar.gz'.format(
-            project, self.debian_new_version)
+            deb_project, self.debian_new_version)
         try:
             self.tarball = archives[-1]
             shutil.copyfile(self.tarball, self.orig_tarball)
