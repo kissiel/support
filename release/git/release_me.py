@@ -387,6 +387,7 @@ class Release(Command):
             os.path.join('..', self.orig_tarball)],
             cwd=self.packaging, check=True)
         run(['git-dpm', 'prepare'], cwd=self.packaging, check=True)
+        run(['git-dpm', 'rebase-patched'], cwd=self.packaging, check=True)
         run(['git-dpm', 'dch', '--', '-v', self.debian_new_version+'-1',
             '-D', 'UNRELEASED', '"new upstream version"'],
             cwd=self.packaging, check=True)
