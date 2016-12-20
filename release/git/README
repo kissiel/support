@@ -1,0 +1,141 @@
+Introduction
+============
+
+The purpose of this tool is to help the release process of different parts of
+the Checkbox project <https://launchpad.net/checkbox-project>.
+
+Using it, you can generate Release Candidate (RC) versions as well as Final
+ones.
+
+Even though the tool automatizes part of the process, it does not push changes
+in production automatically. You have to manually follow the steps provided by
+the tool in order to push the changes in production. In addition, some manual
+steps are still needed. This document will guide you through the whole process.
+
+Prerequisites
+=============
+
+Install the required packages:
+
+    sudo apt install autoconf bumpversion git git-dpm lptools pristine-tar twine
+
+Make sure you have the following in you ~/.gitconfig file:
+
+    [url "git+ssh://your-lp-username@git.launchpad.net/"]
+        insteadof = lp:
+
+In order to avoid having to type your GPG password everytime, make sure you
+have the following in your ~/.gnupg/gpg.conf:
+
+    use-agent
+    no-tty
+
+And in your ~/.gnupg/gpg-agent.conf:
+
+    default-cache-ttl 86400
+    max-cache-ttl 86400
+
+Milestones Management
+=====================
+
+Check bugs in checkbox-project <https://launchpad.net/checkbox-project> to see
+if they can be included in the release to come. Some of them could be
+"In Progress" but with the fix already merged in trunk. Update their statuses
+and milestones.
+
+Always maintain a few milestones ahead for each projects.
+
+Use the lp-create-milestone script like this:
+
+    ./lp-create-milestone plainbox -n 0.57 -d 2015-11-24
+
+Review the current milestones content and postpone to the next one the bugs
+not "Fix Committed".
+
+Cutting the Release
+===================
+
+Preparation:
+
+Create a dedicated directory that you will keep during all the release.
+
+    mkdir ~/checkbox_release
+
+Copy all the delivery support scripts to the release directory:
+
+    git clone lp:~checkbox-dev/checkbox/+git/support /tmp
+    cp -r /tmp/support/release/git/* ~/checkbox_release/
+
+Move to the release directory
+
+    cd ~/checkbox_release
+
+Cut the release, change all package versions to RC and create/apply git tags
+for the release candidate.
+
+    ./release_me.py rc
+
+Follow the on-screen instructions given when the scripts ends as nothing will be
+pushed to lp automatically:
+
+    1. Push all the changes (code and packaging) to their release branches.
+       Copy and launch the proposed commands once you're sure that the branches
+       are ok, check versions and tags for both code and packaging repositories
+       (you can use `gitg` to check this).
+    2. Update the git build recipes and request builds in the testing PPA.
+       Give lp a minute or two before updating the recipes. Again copy and
+       execute the proposed commands.
+    3. Optionally (if requested by someone in the team), upload the tarballs
+       to PyPi using twine.
+
+Special case: Cherry pick a bugfix from master after having cut the release:
+
+A second (or third…) release candidate has to be created for the impacted
+package. First, cherry pick the bug from master, e.g:
+
+    cd ~/checkbox_release/checkbox-ng
+    git checkout master
+    git pull
+    # display last 10 commits with their commit number
+    git log -10 --oneline
+    # switch to release branch
+    git checkout release
+    # cherry pick the commit we're interested in
+    git cherry-pick 7b389a2
+    cd  ~/checkbox_release
+
+    Note: 7b389a2 is the commit where the fix was made.
+
+Create a second RC only for this package (and its packaging branch):
+
+    ./release_me.py rc
+
+The script will automatically skip projects that haven't been updated.    
+
+Follow on-screen instructions to push the changes
+Finally, update the build recipe(s) and build the package(s).
+
+TEST TEST TEST the release candidate(s)!
+
+Once testing is done, it's time to release the candidate packages to the stable PPA.
+
+Change all package versions to final, create/apply the corresponding git tags
+and update the debian/changelog (closing the current entry and open the
+next dev version):
+
+    cd ~/checkbox_release && ./release_me.py final
+
+Follow the on-screen instructions given when the scripts ends as nothing will be
+pushed to lp automatically:
+
+    1. Push all the changes (code and packaging) to their release branches.
+       Copy and launch the proposed commands once you're sure that the branches
+       are ok, check versions and tags for both code and packaging repositories
+       (you can use `gitg` to check this).
+    2. Propose to merge the release branches into their master branches
+       Review the MR, approve and let git-pmr do its automatic merging job.
+    3. Once all release branches are merged, Delete the (now useless) release branches.
+    4. Update the git build recipes and request builds in the stable PPA.
+    5. Release all the milestones and their related bugtasks.
+    6. Upload the signed source tarballs to LP (using lp-project-upload).
+    7. Upload the signed source tarballs to PyPI (using twine).
