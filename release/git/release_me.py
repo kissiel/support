@@ -238,8 +238,15 @@ class Release(Command):
             version_pattern = '*[^c][0-9]'  # Up to 9 RC :)
         code_change = run(
             'git diff $(git describe --abbrev=0 --tags --match '
-            '"v{}") --name-only'.format(version_pattern),
+            '"v{}") -- . ":(exclude).*ignore"'.format(version_pattern),
             shell=True, cwd=project, check=True).stdout
+        version_change = run(
+            'git diff $(git describe --abbrev=0 --tags --match "v{}")'
+            ' -G "__version__|current_version|version="'.format(
+                version_pattern),
+            shell=True, cwd=project, check=True).stdout
+        if code_change == version_change:
+            code_change = False
         packaging_change = run(
             'git diff $(git describe --abbrev=0 --tags --match '
             '"debian-{}") --name-only'.format(version_pattern),
