@@ -50,14 +50,16 @@ def main():
     packages = {
         'checkbox-support': 'Checkbox Support Library',
         'plainbox': 'PlainBox (Toolkit)',
-        'plainbox-provider-certification-client': 'Canonical Certification '
-                                                  'Client Provider '
-                                                  'for PlainBox',
-        'plainbox-provider-certification-server': 'Canonical Certification '
-                                                  'Server Provider '
-                                                  'for PlainBox',
-        'plainbox-provider-checkbox': 'Checkbox Provider for PlainBox',
-        'plainbox-provider-resource': 'Resource Provider for PlainBox',
+        'plainbox-provider-certification-client': 'Provider for Plainbox - '
+                                                  'Canonical Certification '
+                                                  'Client',
+        'plainbox-provider-certification-server': 'Provider for Plainbox - '
+                                                  'Canonical Certification '
+                                                  'Server',
+        'plainbox-provider-checkbox': 'Provider for Plainbox - Checkbox',
+        'plainbox-provider-resource': 'Provider for Plainbox - Resource',
+        'plainbox-provider-sru': 'Provider for Plainbox - SRU',
+        'plainbox-provider-tpm2': 'Provider for Plainbox - TPM2',
         'checkbox-ng': 'Next Generation Checkbox (CLI)',
         'checkbox-converged': 'Checkbox Converged',
     }
@@ -81,8 +83,8 @@ def main():
         for m in sorted(matching_milestone, key=lambda m: m.date_targeted):
             if m.date_targeted.isoformat() not in milestone_codes:
                 milestone_codes[m.date_targeted.isoformat()] = ""
-            mi_codes = [mi["value"] for mi in milestones if "{} {}".format(
-                    packages[p], m.name) in mi["id"]]
+            mi_codes = [mi["value"] for mi in milestones if re.search(
+                "{}\s+{}".format(packages[p], m.name), mi["id"])]
             if mi_codes:
                 milestone_codes[m.date_targeted.isoformat()] += \
                     "&field.milestone%3Alist={}".format(mi_codes[-1])
