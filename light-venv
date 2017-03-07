@@ -1,0 +1,55 @@
+#!/usr/bin/env sh
+# Create a virtualenv for working with plainbox.
+# This is an experimental version of mk-venv command. This version doesn't
+# install or remove any packages in the system or run anything as sudo so it
+# should be suitable for scripting purposes.
+
+if [ "$#" -ne 1 ]; then
+    echo "Usage: $0 [LOCATION]"
+    echo ""
+    echo "Create a virtualenv for working with checkbox in LOCATION"
+    exit 1
+fi
+
+CHECKBOX_VENV_PATH=$(pwd)/$1
+CHECKBOX_TOP=$(pwd)
+export CHECKBOX_TOP
+
+echo "Creating virtualenv in $CHECKBOX_VENV_PATH"
+virtualenv --quiet --system-site-packages --python=python3 $CHECKBOX_VENV_PATH
+
+# Add PLAINBOX_LOCALE_DIR to the venv
+echo "export PLAINBOX_LOCALE_DIR=$CHECKBOX_TOP/plainbox/build/mo" >> $CHECKBOX_VENV_PATH/bin/activate
+
+# Add CHECKBOX_NG_LOCALE_DIR to the venv
+echo "export CHECKBOX_NG_LOCALE_DIR=$CHECKBOX_TOP/checkbox-ng/build/mo" >> $CHECKBOX_VENV_PATH/bin/activate
+
+# Add CHECKBOX_PROVIDER_LOCALE_DIR to the venv
+echo "export CHECKBOX_PROVIDER_LOCALE_DIR=$CHECKBOX_TOP/providers/plainbox-provider-checkbox/build/mo" >> $CHECKBOX_VENV_PATH/bin/activate
+
+# Add PROVIDERPATH to the venv
+echo "export PROVIDERPATH=$CHECKBOX_VENV_PATH/share/plainbox-providers-1" >> $CHECKBOX_VENV_PATH/bin/activate
+mkdir -p "$CHECKBOX_VENV_PATH/share/plainbox-providers-1"
+
+# Activate the virtualenv 
+. $CHECKBOX_VENV_PATH/bin/activate
+
+# Make sure that external-tarballs is ready
+$CHECKBOX_TOP/support/get-external-tarballs
+
+# Make sure that checkbox-packaging is ready
+$CHECKBOX_TOP/support/get-checkbox-packaging
+
+# Install all the python dependencies
+$CHECKBOX_TOP/support/install-pip-dependencies
+
+# Develop all the local projects
+$CHECKBOX_TOP/support/develop-projects-venv
+
+# Develop all the local providers 
+$CHECKBOX_TOP/support/develop-providers-venv
+echo "\n\n"
+echo "Should you wish to work with an empty provider database, run:"
+echo "$ rm $CHECKBOX_VENV_PATH/share/plainbox-providers-1/*"
+echo "To activate your virtualenv run:"
+echo "$ . $CHECKBOX_VENV_PATH/bin/activate"
