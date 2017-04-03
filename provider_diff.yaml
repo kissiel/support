@@ -1,0 +1,13 @@
+# plan to compare current revision of p-p-s with a previous one
+before:
+    source: https://git.launchpad.net/plainbox-provider-snappy 
+    source-subdir: plainbox-provider-snappy
+    source-commit: HEAD^
+after:
+    source: https://git.launchpad.net/plainbox-provider-snappy 
+    source-subdir: plainbox-provider-snappy
+    source-commit: HEAD
+additional_providers:
+    - ppsr:
+        source: https://git.launchpad.net/plainbox-provider-snappy 
+        source-subdir: plainbox-provider-snappy-resource
