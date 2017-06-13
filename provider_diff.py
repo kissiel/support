@@ -129,6 +129,7 @@ def main():
 def compare_sets(before, after):
     only_in_before = [x for x in before if x not in after]
     only_in_after = [x for x in after if x not in before]
+    only_in_both = [x for x in after if x in before]
     if not only_in_before and not only_in_after:
         print("No differences")
         return
@@ -138,6 +139,9 @@ def compare_sets(before, after):
     if only_in_after:
         print("Found only in the 'after' commit:")
         print('\t' + '\n\t'.join(only_in_after))
+    if only_in_both:
+        print("Found in both the 'before' and 'after' commit:")
+        print('\t' + '\n\t'.join(only_in_both))
 
 
 def get_job_definitions(venv):
