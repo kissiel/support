@@ -36,7 +36,7 @@ LXC_CREATE=`which lxc-create`
 LXC_START=`which lxc-start`
 LXC_STOP=`which lxc-stop`
 LXC_DESTROY=`which lxc-destroy`
-LXC_START_EPHEMERAL=`which lxc-start-ephemeral`
+LXC_COPY=`which lxc-copy`
 LXC_ATTACH=`which lxc-attach`
 LXC_LS=`which lxc-ls`
 LXC_WAIT=`which lxc-wait`
@@ -87,7 +87,7 @@ start_lxc_for(){
     fi
     step="[$target] starting container"
     echo $step
-    if ! /usr/bin/time -o $TIMING sudo $LXC_START_EPHEMERAL $KEEP_DATA -d -o $pristine_container -n $target_container -b $PWD >$LOG_DIR/$target.startup.log 2>$LOG_DIR/$target.startup.err; then
+    if ! /usr/bin/time -o $TIMING sudo $LXC_COPY -n $pristine_container -N $target_container --keepdata -e -d -m bind=$PWD >$LOG_DIR/$target.startup.log 2>$LOG_DIR/$target.startup.err; then
         outcome=1
         echo "[$target] Unable to start ephemeral container!"
         echo "[$target] stdout: $(pastebinit $LOG_DIR/$target.startup.log)"
@@ -98,6 +98,9 @@ start_lxc_for(){
         return 1
     fi
     cat $TIMING | sed -e "s/^/[$target] (timing) /"
+
+    # Delay a bit after starting the container, or provisioning will fail
+    sleep 10 
 
     # Before provisioning, try to detect and configure apt-cacher-ng
     if [ -n "$VAGRANT_APT_CACHE" ]; then
