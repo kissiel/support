@@ -30,7 +30,7 @@ fi
 # Ensure that we have the external-tarballs repository
 if [ ! -d "$CHECKBOX_TOP/support/external-tarballs" ]; then
     echo "E: you need to have $CHECKBOX_TOP/support/external-tarballs to run this script"
-    echo "I: git clone git://github.com/checkbox/external-tarballs $CHECKBOX_TOP/support/external-tarballs"
+    echo "I: git clone https://github.com/checkbox/external-tarballs $CHECKBOX_TOP/support/external-tarballs"
     exit 101 
 fi
 
