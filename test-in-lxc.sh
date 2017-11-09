@@ -188,7 +188,7 @@ for target_release in $target_list; do
         script_md5sum=$(echo $test_script | md5sum |cut -d " " -f 1)
         logfile=$LOG_DIR/${target}.${test_name}.${script_md5sum}.log
         errfile=$LOG_DIR/${target}.${test_name}.${script_md5sum}.err
-        if /usr/bin/time -o $TIMING sudo $LXC_ATTACH --keep-env -n $target -- bash -c 'cd $HOME/src/'"$component_dir && ./requirements/$test_name" >$logfile 2>$errfile
+        if /usr/bin/time -o $TIMING sudo -E $LXC_ATTACH --keep-env -n $target -- bash -c 'cd $HOME/src/'"$component_dir && ./requirements/$test_name" >$logfile 2>$errfile
         then
             echo "[$target] ${test_name}: $PASS"
         else
