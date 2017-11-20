@@ -37,15 +37,18 @@ if [ ! -d "$CHECKBOX_TOP/support/external-tarballs" ]; then
     exit 101 
 fi
 
-# Set a http_proxy to the local discard port to prevent setuptools from
-# downloading anything.
-export http_proxy=http://127.0.0.1:9
-
 # Custom pip executable. Needed because the pip we want is called differently
 # in different situations. Inside a virtualenv it is always 'pip' but outside
 # it may be pip-3.2 or pip-3.3, depending on python version.
 CHECKBOX_PIP=${CHECKBOX_PIP:-pip}
 echo "I: using $CHECKBOX_PIP to install python packages"
+
+# The trusty version of setuptools causes some problems, force an update
+$CHECKBOX_PIP install --upgrade setuptools
+
+# Set a http_proxy to the local discard port to prevent setuptools from
+# downloading anything.
+export http_proxy=http://127.0.0.1:9
 
 # Construct a list of required python packages.
 python_pkg_list="$(find "$CHECKBOX_TOP" -path '*/requirements/pip-*.txt' -exec cat "{}" \; | grep -v '^#' | sort | uniq)"
