@@ -31,7 +31,7 @@ fi
 if [ ! -d "$CHECKBOX_TOP/support/external-tarballs" ]; then
     echo "E: you need to have $CHECKBOX_TOP/support/external-tarballs to run this script"
     echo "I: git clone https://github.com/checkbox/external-tarballs $CHECKBOX_TOP/support/external-tarballs"
-    exit 101 
+    exit 101
 fi
 
 # Ensure that we have python3
@@ -45,7 +45,7 @@ build_dir=$(mktemp -d)
 trap "rm -rf \"$build_dir\"" EXIT
 
 # Unpack pip source
-tar zxf $CHECKBOX_TOP/support/external-tarballs/pypi/pip-1.3.1.tar.gz -C "$build_dir"
+tar zxf $CHECKBOX_TOP/support/external-tarballs/pypi/pip-9.0.1.tar.gz -C "$build_dir"
 
 # Set a http_proxy to the local discard port to prevent setuptools from
 # downloading anything.
@@ -53,4 +53,4 @@ export http_proxy=http://127.0.0.1:9
 
 # Install it
 echo "I: installing pip from source"
-cd "$build_dir/pip-1.3.1/" && python3 setup.py install --quiet --quiet
+cd "$build_dir/pip-9.0.1/" && python3 setup.py install --quiet --quiet
