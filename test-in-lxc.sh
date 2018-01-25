@@ -11,6 +11,8 @@
 # /usr/bin/lxc-stop, /usr/bin/lxc-ls, /usr/bin/lxc-info, /usr/bin/lxc-wait
 # your-user ALL=NOPASSWD: LXC_COMMANDS
 
+set -a
+
 LOG_DIR=lxc-logs
 mkdir -p $LOG_DIR
 TIMING=$LOG_DIR/timing.dat
@@ -155,11 +157,13 @@ fi
 PASS="$(printf "\33[32;1mPASS\33[39;0m")"
 FAIL="$(printf "\33[31;1mFAIL\33[39;0m")"
 
-outcome=0
 
 test_lxc_can_run || exit 1
 
-for target_release in $target_list; do
+
+perform_test(){
+    target_release=$1
+
     if ! start_lxc_for $target_release; then
         outcome=1
         continue
@@ -221,6 +225,14 @@ for target_release in $target_list; do
             echo "[$target] You may need to manually 'sudo lxc-destroy -f -n $target' to fix this"
         fi
     fi
-done
+    return $outcome
+}
+
+outcome=0
+
+# spawn one lxc process per target from $target_list
+# if any of them fails, $outcome will be set to 1
+echo $target_list |xargs -P0 -n1 bash -c 'perform_test "$@"' _ || outcome=1
+
 # Propagate failure code outside
 exit $outcome
