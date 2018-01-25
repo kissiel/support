@@ -159,7 +159,10 @@ outcome=0
 
 test_lxc_can_run || exit 1
 
-for target_release in $target_list; do
+
+perform_test(){
+    target_release=$1
+
     if ! start_lxc_for $target_release; then
         outcome=1
         continue
@@ -221,6 +224,10 @@ for target_release in $target_list; do
             echo "[$target] You may need to manually 'sudo lxc-destroy -f -n $target' to fix this"
         fi
     fi
+}
+
+for target_release in $target_list; do
+    perform_test $target_release
 done
 # Propagate failure code outside
 exit $outcome
