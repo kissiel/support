@@ -74,6 +74,7 @@ start_lxc_for(){
             outcome=1
             echo "[$target] Unable to create pristine container!"
             echo "[$target] stdout: $(pastebinit $LOG_DIR/$target.pristine.log)"
+            echo "[$target] stderr: $(pastebinit $LOG_DIR/$target.pristine.err)"
             echo "[$target] NOTE: unable to execute tests, marked as failed"
             echo "[$target] Trying to destroy to reclaim possible resources"
             sudo $LXC_DESTROY -f -n $pristine_container
