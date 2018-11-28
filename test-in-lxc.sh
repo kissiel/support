@@ -46,7 +46,9 @@ start_lxc_for(){
     outcome=$((outcome+$?))
     lxc exec $pristine_container -- rm -f /etc/cron.daily/apt-compat
     # Allow time for the container to activate
-    sleep 30
+    while ! lxc info $pristine_container |grep -q "eth0:.*inet"; do
+        sleep 1
+    done
     lxc exec $pristine_container apt update >> $LOG_DIR/$target.pristine.log 2<&1
     outcome=$((outcome+$?))
     lxc exec $pristine_container -- bash -c "DEBIAN_FRONTEND=noninteractive apt dist-upgrade -y" >> $LOG_DIR/$target.pristine.log 2<&1
@@ -82,8 +84,10 @@ start_lxc_for(){
         return 1
     fi
 
-    # Delay a bit after starting the container, or provisioning will fail
-    sleep 10 
+    # Wait for networking on the container, or provisioning will fail
+    while ! lxc info $target_container |grep -q "eth0:.*inet"; do
+        sleep 1
+    done
 
     # Before provisioning, try to detect and configure apt-cacher-ng
     if [ -n "$VAGRANT_APT_CACHE" ]; then
