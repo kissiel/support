@@ -105,7 +105,7 @@ start_lxc_for(){
     echo "[$distro] [$(date +%H:%M:%S)] provisioning container"
     if ! lxc exec $target_container >> $LOG_DIR/$target.pristine.log 2<&1 -- bash -c "/root/support/provision-testing-environment /root"; then
         echo "[$distro] [$(date +%H:%M:%S)] Unable to provision requirements in container!"
-        echo "[$distro] output: $(pastebinit $LOG_DIR/$target.provision.log)"
+        echo "[$distro] output: $(pastebinit $LOG_DIR/$target.pristine.log)"
         fix_permissions
         echo "[$distro] Destroying failed container to reclaim resources"
         lxc stop -f $target_container
@@ -146,7 +146,7 @@ perform_test(){
     target_release=$1
     if ! start_lxc_for $target_release; then
         outcome=1
-        continue
+        return $outcome
     fi
     # Our actual container has "-testing" appended.
     target=${target_release}-testing
