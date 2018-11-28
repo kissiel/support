@@ -46,7 +46,7 @@ start_lxc_for(){
     outcome=$((outcome+$?))
     lxc exec $pristine_container -- rm -f /etc/cron.daily/apt-compat
     # Allow time for the container to activate
-    while ! lxc info $pristine_container |grep -q "eth0:.*inet"; do
+    while ! lxc info $pristine_container |grep -qP "eth0:\tinet\t"; do
         sleep 1
     done
     lxc exec $pristine_container apt update >> $LOG_DIR/$target.pristine.log 2<&1
@@ -85,7 +85,7 @@ start_lxc_for(){
     fi
 
     # Wait for networking on the container, or provisioning will fail
-    while ! lxc info $target_container |grep -q "eth0:.*inet"; do
+    while ! lxc info $target_container |grep -qP "eth0:\tinet\t"; do
         sleep 1
     done
 
