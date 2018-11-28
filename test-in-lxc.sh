@@ -13,7 +13,7 @@ pastebinit() {
 
 test_lxc_can_run(){
     PROBLEM=0
-    if ! which lxc; then
+    if ! which lxc > /dev/null; then
         echo "lxc commands not found, maybe you need to install lxd and lxc"
         PROBLEM=1
     fi
@@ -158,7 +158,7 @@ for target_release in $target_list; do
     # - Exit 0 for success, other codes for failure
     # - Write logs/debugging data to stdout and stderr.
     for test_script in $(find ./ -path '*/requirements/*container-tests-*' | sort); do
-        echo "Found a test script: $test_script"
+        echo "[$distro] Found a test script: $test_script"
         test_name=$(basename $test_script)
         # Two dirnames strips the requirements/ component
         component_dir=$(dirname $(dirname $test_script))
