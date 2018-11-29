@@ -72,7 +72,7 @@ start_lxc_for(){
 
     echo "[$distro] [$(date +%H:%M:%S)] starting container"
     lxc copy -e $pristine_container $target_container
-    lxc config set $target_container raw.idmap "both $UID 1000"
+    echo -en "uid $UID 1000\ngid $(id -g) 1000" | lxc config set $target_container raw.idmap -
     lxc config device add $target_container project disk source=$PWD path=/root
     if ! lxc start $target_container >> $LOG_DIR/$target.startup.log 2<&1; then
         outcome=1
