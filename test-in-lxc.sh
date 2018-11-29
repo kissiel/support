@@ -168,10 +168,10 @@ perform_test(){
         test_name=$(basename $test_script)
         # Two dirnames strips the requirements/ component
         component_dir=$(dirname $(dirname $test_script))
-        # Inside the LXC container, tests are relative to $HOME/src
+        # Inside the LXC container, tests are relative to /root because that's where we mount the project directory
         script_md5sum=$(echo $test_script | md5sum |cut -d " " -f 1)
         logfile=$LOG_DIR/${target}.${test_name}.${script_md5sum}.log
-        if lxc exec $target_container -- bash -c 'cd $HOME/src/'"$component_dir && ./requirements/$test_name" >> $logfile 2<&1
+        if lxc exec $target_container -- bash -c 'cd /root/'"$component_dir && ./requirements/$test_name" >> $logfile 2<&1
         then
             echo "[$distro] [$(date +%H:%M:%S)] ${test_name}: $PASS"
         else
