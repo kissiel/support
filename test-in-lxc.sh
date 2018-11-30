@@ -45,6 +45,8 @@ start_lxc_for(){
     lxc start $pristine_container >> $LOG_DIR/$target.pristine.log 2<&1
     outcome=$((outcome+$?))
     lxc exec $pristine_container -- rm -f /etc/cron.daily/apt-compat
+    lxc exec $pristine_container -- systemctl stop apt-daily.timer
+    lxc exec $pristine_container -- systemctl disable --now apt-daily{,-upgrade}.{timer,service}
     # Allow time for the container to activate
     while ! lxc info $pristine_container |grep -qP "eth0:\tinet\t"; do
         sleep 1
