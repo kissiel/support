@@ -45,6 +45,8 @@ start_lxc_for(){
     lxc start $pristine_container >> $LOG_DIR/$target.pristine.log 2<&1
     outcome=$((outcome+$?))
     lxc exec $pristine_container -- rm -f /etc/cron.daily/apt-compat
+    lxc exec $pristine_container -- systemctl stop apt-daily.timer
+    lxc exec $pristine_container -- systemctl disable --now apt-daily{,-upgrade}.{timer,service}
     # Allow time for the container to activate
     while ! lxc info $pristine_container |grep -qP "eth0:\tinet\t"; do
         sleep 1
@@ -73,7 +75,7 @@ start_lxc_for(){
     echo "[$distro] [$(date +%H:%M:%S)] starting container"
     lxc copy -e $pristine_container $target_container
     echo -en "uid $UID 1000\ngid $(id -g) 1000" | lxc config set $target_container raw.idmap -
-    lxc config device add $target_container project disk source=$PWD path=/root
+    lxc config device add $target_container project disk source=$PWD path=/root/project
     if ! lxc start $target_container >> $LOG_DIR/$target.startup.log 2<&1; then
         outcome=1
         echo "[$distro] [$(date +%H:%M:%S)] Unable to start ephemeral container!"
@@ -103,7 +105,7 @@ start_lxc_for(){
     # Unlike with Vagrant, we have to provision the VM "manually" here.
     # However we can leverage the same script :D
     echo "[$distro] [$(date +%H:%M:%S)] provisioning container"
-    if ! lxc exec $target_container >> $LOG_DIR/$target.pristine.log 2<&1 -- bash -c "/root/support/provision-testing-environment /root"; then
+    if ! lxc exec $target_container >> $LOG_DIR/$target.pristine.log 2<&1 -- bash -c "/root/project/support/provision-testing-environment /root/project"; then
         echo "[$distro] [$(date +%H:%M:%S)] Unable to provision requirements in container!"
         echo "[$distro] output: $(pastebinit $LOG_DIR/$target.pristine.log)"
         fix_permissions
@@ -121,7 +123,7 @@ fix_permissions(){
     # under the branch directory to be owned by the unprivileged user,
     # so stuff can be deleted correctly later.
     echo "[$distro] [$(date +%H:%M:%S)] Fixing file permissions in source directory"
-    if ! lxc exec $target_container -- bash -c "chown -R --reference=/root/support/test-in-lxc.sh /root" >> $LOG_DIR/$target.fix-perms.log 2<&1; then
+    if ! lxc exec $target_container -- bash -c "chown -R --reference=/root/project/support/test-in-lxc.sh /root/project" >> $LOG_DIR/$target.fix-perms.log 2<&1; then
         echo "[$distro] [$(date +%H:%M:%S)] Unable to fix permissions!"
         echo "[$distro] output: $(pastebinit $LOG_DIR/$target.fix-perms.log)"
         echo "[$distro] Some files owned by root may have been left around, fix them manually with chown."
@@ -171,7 +173,7 @@ perform_test(){
         # Inside the LXC container, tests are relative to /root because that's where we mount the project directory
         script_md5sum=$(echo $test_script | md5sum |cut -d " " -f 1)
         logfile=$LOG_DIR/${target}.${test_name}.${script_md5sum}.log
-        if lxc exec $target_container -- bash -c 'cd /root/'"$component_dir && ./requirements/$test_name" >> $logfile 2<&1
+        if lxc exec $target_container -- bash -c 'cd /root/project/'"$component_dir && ./requirements/$test_name" >> $logfile 2<&1
         then
             echo "[$distro] [$(date +%H:%M:%S)] ${test_name}: $PASS"
         else
