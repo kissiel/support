@@ -29,6 +29,9 @@ start_lxc_for(){
     target_container=${1}-testing
     [ "$target" != "" ] || return 1
 
+    # Ensure the target_container isn't still around from a previous run
+    lxc delete -f $target_container &> /dev/null
+
     # Ensure we have a pristine container, create it otherwise.
     if ! lxc ls |grep -q $pristine_container; then
         echo "[$distro] [$(date +%H:%M:%S)] creating pristine container"
