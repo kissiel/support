@@ -200,9 +200,9 @@ class Release():
         self._data["parts"][part]['source-tag'] = last_tag
 
     def _tag_version(self, part, new_tag):
-        """Tag (and sign) the code version."""
+        """Tag the code version."""
         repo_basename = os.path.basename(self._parts[part]['source'])
-        run(['git', 'tag', '-s', new_tag, '-m', new_tag],
+        run(['git', 'tag', new_tag, '-m', new_tag],
             cwd=os.path.join(self.CWD, repo_basename), check=True)
         logger.info("{} applied on {}".format(new_tag, repo_basename))
 
