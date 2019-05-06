@@ -95,7 +95,7 @@ class Release():
         self.branch = args.branch
         self.release_branch = args.release_branch
         self.rebase_branch = args.rebase_branch
-        # self.increment_part = args.increment_part
+        self.increment_part = args.increment_part
         self.dry_run = args.dry_run
         self.user = args.user
         self.base_url = 'git+ssh://{}@git.launchpad.net'.format(self.user)
@@ -226,17 +226,19 @@ class Release():
         logger.info("".center(80, '#'))
         with open(self._snapcraft_file, 'w') as fp:
             self._yaml.dump(self._data, fp)
-        # bumpversion_output = run(
-        #     ['bumpversion', self.increment_part,
-        #      '--current-version', self._data['version'],
-        #      '--allow-dirty', '--list', self._snapcraft_file],
-        #     check=True).stdout.decode()
-        # new_version = bumpversion_output.splitlines()[-1].replace(
-        #     'new_version=', '')
-        # logger.info("Bump {} to version {}".format(
-        #     self.repository, new_version))
+        logger.info("".center(80, '#'))
+        logger.info("# Updating {} version in {}".format(
+            self.repository, self._snapcraft_file))
+        logger.info("".center(80, '#'))
         repo_basename = os.path.basename(self.repository)
         cwd = os.path.join(self.CWD, repo_basename)
+        bumpversion_output = run(
+            ['bumpversion', self.increment_part, '--allow-dirty', '--list'],
+            check=True, cwd=cwd).stdout.decode()
+        new_version = bumpversion_output.splitlines()[-1].replace(
+            'new_version=', '')
+        logger.info("Bump {} to version {}".format(
+            self.repository, new_version))
         run(['git', 'add', '--all'], cwd=cwd, check=True)
         run(['git', 'commit', '-m', 'Bump version number and tag parts'],
             cwd=cwd, check=True)
@@ -279,9 +281,9 @@ if __name__ == "__main__":
     parser.add_argument("-r", "--rebase_branch",
                         help="Specify the git branch to rebase on",
                         metavar="REBASE_BRANCH")
-    # parser.add_argument("-i", "--increment_part", default='minor',
-    #                     help="The part of the version to increase",
-    #                     metavar="INCREMENT_PART")
+    parser.add_argument("-i", "--increment_part", default='release',
+                         help="The part of the version to increase",
+                         metavar="INCREMENT_PART")
     parser.add_argument("-u", "--user",
                         help="Specify launchpad user id", metavar="USER")
     parser.add_argument("--credentials",
