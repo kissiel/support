@@ -57,7 +57,7 @@ class ConsoleFormatter(logging.Formatter):
 logger = logging.getLogger('release')
 logger.setLevel(logging.DEBUG)
 # create file handler which logs even debug messages
-fh = logging.FileHandler('release.log')
+fh = logging.FileHandler('release.log', mode='w')
 fh.setLevel(logging.DEBUG)
 # create console handler with a higher log level
 ch = logging.StreamHandler()
