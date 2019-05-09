@@ -296,10 +296,20 @@ class Release():
                  os.path.join(self.base_url, self.repository),
                 '{}:{}'.format(local_branch, self.release_branch)],
                 cwd=cwd, check=True)
+            run(['git', 'push', '--dry-run',
+                 os.path.join(self.base_url, self.repository),
+                 '{}:{}'.format(local_branch, self.release_branch),
+                 '--tags'],
+                cwd=cwd, check=True)
         else:
             run(['git', 'push',
                  os.path.join(self.base_url, self.repository),
                 '{}:{}'.format(local_branch, self.release_branch)],
+                cwd=cwd, check=True)
+            run(['git', 'push',
+                 os.path.join(self.base_url, self.repository),
+                 '{}:{}'.format(local_branch, self.release_branch),
+                 '--tags'],
                 cwd=cwd, check=True)
 
     def _rebase(self):
