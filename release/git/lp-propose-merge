@@ -43,6 +43,8 @@ def main():
     parser.add_argument("--release-message", "-m",
                         help="The release message to include in the "
                              "merge request")
+    parser.add_argument("--self-approved", "-s", action='store_true',
+                        help="Top approve the merge request")
     args = parser.parse_args()
     lp = Launchpad.login_with(sys.argv[0], 'production', version="devel")
     repo = lp.git_repositories.getByPath(path=args.repo)
@@ -75,7 +77,10 @@ def main():
         commit_message=release_message,
         needs_review=True)
     print(merge_request.web_link)
-
+    if args.self_approved:
+        merge_request.createComment(
+            review_type='automated', vote='Approve', subject='self-approved')
+        merge_request.setStatus(status='Approved')
     return 0
 
 if __name__ == "__main__":
