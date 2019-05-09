@@ -94,12 +94,14 @@ class Release():
         self.repository = args.repository
         self.branch = args.branch
         self.release_branch = args.release_branch
+        self.finish_release = args.finish
         self.rebase_branch = args.rebase_branch
         self.increment_part = args.increment_part
         self.dry_run = args.dry_run
         self.user = args.user
         self.base_url = 'git+ssh://{}@git.launchpad.net'.format(self.user)
         self._parts = {}
+        self._previous_parts = {}
         repo_basename = os.path.basename(self.repository)
         self._snapcraft_file = os.path.join(
             self.CWD, repo_basename, 'snap', 'snapcraft.yaml')
@@ -114,13 +116,18 @@ class Release():
         self._cleanup()
         if self.rebase_branch:
             self._clone(os.path.join(self.base_url, self.repository),
-                self.branch)
+                        self.branch)
             self._rebase()
+            self._push_release_branch(self.branch)
+        elif self.finish_release:
+            self._clone(os.path.join(self.base_url, self.repository),
+                        self.release_branch)
+            self._get_parts()
+            self._finish_release()
+            self._push_release_branch(self.release_branch)
         else:
             self._clone(os.path.join(self.base_url, self.repository),
-                self.branch)
-            self._clone(os.path.join(self.base_url, self.repository),
-                self.release_branch, self.release_branch)
+                        self.branch)
             self._get_previous_parts()
             self._get_parts()
             with open('changelog', 'w') as f:
@@ -148,7 +155,7 @@ class Release():
                 logger.debug("".center(80, '#'))
                 for c in self._cleanup_release_tags_commands:
                     logger.debug(c)
-        self._push_release_branch()
+            self._push_release_branch(self.branch)
 
     def _cleanup(self):
         shutil.rmtree(self.CWD, ignore_errors=True)
@@ -235,6 +242,7 @@ class Release():
                 logger.info("No new changes on {}".format(part))
             logger.info("{} will be used".format(last_tag))
         self._data["parts"][part]['source-tag'] = last_tag
+        return last_tag
 
     def _tag_version(self, part, new_tag):
         """Tag the code version."""
@@ -280,24 +288,57 @@ class Release():
         run(['git', 'commit', '-m', 'Bump version number and tag parts'],
             cwd=cwd, check=True)
 
-    def _push_release_branch(self):
+    def _push_release_branch(self, local_branch):
         repo_basename = os.path.basename(self.repository)
         cwd = os.path.join(self.CWD, repo_basename)
         if self.dry_run:
             run(['git', 'push', '--dry-run',
                  os.path.join(self.base_url, self.repository),
-                '{}:{}'.format(self.branch, self.release_branch)],
+                '{}:{}'.format(local_branch, self.release_branch)],
                 cwd=cwd, check=True)
         else:
             run(['git', 'push',
                  os.path.join(self.base_url, self.repository),
-                '{}:{}'.format(self.branch, self.release_branch)],
+                '{}:{}'.format(local_branch, self.release_branch)],
                 cwd=cwd, check=True)
 
     def _rebase(self):
         repo_basename = os.path.basename(self.repository)
         cwd = os.path.join(self.CWD, repo_basename)
         run(['git', 'rebase', 'origin/{}'.format(self.rebase_branch)],
+            cwd=cwd, check=True)
+
+    def _finish_release(self):
+        """Tag, reset parts tags, open next dev version and commit."""
+        repo_basename = os.path.basename(self.repository)
+        release_tag = "v{}".format(self._data["version"])
+        run(['git', 'tag', release_tag, '-m', release_tag],
+            cwd=os.path.join(self.CWD, repo_basename), check=True)
+        logger.info("{} applied on {}".format(release_tag, repo_basename))
+        logger.info("".center(80, '#'))
+        logger.info("# Updating parts in {}".format(
+            self._snapcraft_file))
+        logger.info("".center(80, '#'))
+        for part in self._parts:
+            if part in parts_ignore:
+                continue
+            self._data["parts"][part]['source-tag'] = ""
+        with open(self._snapcraft_file, 'w') as fp:
+            self._yaml.dump(self._data, fp)
+        logger.info("".center(80, '#'))
+        logger.info("# Updating {} version in {}".format(
+            self.repository, self._snapcraft_file))
+        logger.info("".center(80, '#'))
+        cwd = os.path.join(self.CWD, repo_basename)
+        bumpversion_output = run(
+            ['bumpversion', 'minor', '--allow-dirty', '--list'],
+            check=True, cwd=cwd).stdout.decode()
+        new_version = bumpversion_output.splitlines()[-1].replace(
+            'new_version=', '')
+        logger.info("Bump {} to version {}".format(
+            self.repository, new_version))
+        run(['git', 'add', '--all'], cwd=cwd, check=True)
+        run(['git', 'commit', '-m', 'Bump version to next dev release'],
             cwd=cwd, check=True)
 
 
@@ -318,9 +359,11 @@ if __name__ == "__main__":
     parser.add_argument("-r", "--rebase_branch",
                         help="Specify the git branch to rebase on",
                         metavar="REBASE_BRANCH")
+    parser.add_argument("-f", "--finish", action='store_true',
+                        help="Finish the release")
     parser.add_argument("-i", "--increment_part", default='release',
-                         help="The part of the version to increase",
-                         metavar="INCREMENT_PART")
+                        help="The part of the version to increase",
+                        metavar="INCREMENT_PART")
     parser.add_argument("-u", "--user",
                         help="Specify launchpad user id", metavar="USER")
     parser.add_argument("--credentials",
