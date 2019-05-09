@@ -121,12 +121,26 @@ class Release():
                 self.branch)
             self._clone(os.path.join(self.base_url, self.repository),
                 self.release_branch, self.release_branch)
+            self._get_previous_parts()
             self._get_parts()
-            for part in self._parts:
+            with open('changelog', 'w') as f:
+                f.write("Changelog\n")
+            for part in sorted(self._parts,
+                               key=lambda x: x in parts_do_not_tag):
                 if part in parts_ignore:
                     continue
                 self._clone(self._parts[part]['source'])
-                self._tag(part)
+                tag = self._tag(part)
+                try:
+                    old_tag = self._previous_parts[part]['source-tag']
+                    changelog = self._get_change_log(part, tag, old_tag)
+                    if changelog:
+                        with open('changelog', 'a') as f:
+                            f.write('\n{}:\n'.format(part))
+                            f.write(changelog)
+                            f.write("\n")
+                except KeyError:
+                    continue
             self._update_yaml()
             if self._cleanup_release_tags_commands:
                 logger.debug("".center(80, '#'))
@@ -159,6 +173,22 @@ class Release():
             logger.error('Unable to clone {}'.format(repo))
             raise SystemExit(1)
 
+    def _get_previous_parts(self):
+        repo_basename = os.path.basename(self.repository)
+        cwd = os.path.join(self.CWD, repo_basename)
+        cmd = ['git', 'describe', '--abbrev=0', '--tags', '--match', 'v*']
+        last_release_tag = run(
+            cmd, cwd=cwd, check=True).stdout.decode().rstrip()
+        logger.info("Last release tag: {}".format(last_release_tag))
+        cmd = ['git', '--no-pager', 'show', '{}:snap/snapcraft.yaml'.format(
+               last_release_tag)]
+        previous_snapcraft_file = run(cmd, cwd=cwd, check=True).stdout.decode()
+        data = self._yaml.load(previous_snapcraft_file)
+        for k, v in data["parts"].items():
+            if 'source-tag' in v:
+                if 'source' in v:
+                    self._previous_parts[k] = v
+
     def _get_parts(self):
         with open(self._snapcraft_file) as fp:
             self._data = self._yaml.load(fp)
@@ -166,6 +196,13 @@ class Release():
             if 'source-tag' in v:
                 if 'source' in v:
                     self._parts[k] = v
+
+    def _get_change_log(self, part, new_tag, old_tag):
+        repo_basename = os.path.basename(self._parts[part]['source'])
+        cmd = ['git', 'log', '--no-merges', "--pretty=format:+ %s",
+               '{}...{}'.format(old_tag, new_tag)]
+        return run(cmd, cwd=os.path.join(self.CWD, repo_basename),
+                   check=True).stdout.decode()
 
     def _tag(self, part):
         repo_basename = os.path.basename(self._parts[part]['source'])
