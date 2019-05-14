@@ -118,7 +118,7 @@ class Release():
             self._clone(os.path.join(self.base_url, self.repository),
                         self.branch)
             self._rebase()
-            self._push_release_branch(self.branch)
+            self._push_release_branch(self.branch, force=True)
         elif self.finish_release:
             self._clone(os.path.join(self.base_url, self.repository),
                         self.release_branch)
@@ -288,29 +288,51 @@ class Release():
         run(['git', 'commit', '-m', 'Bump version number and tag parts'],
             cwd=cwd, check=True)
 
-    def _push_release_branch(self, local_branch):
+    def _push_release_branch(self, local_branch, force=False):
         repo_basename = os.path.basename(self.repository)
         cwd = os.path.join(self.CWD, repo_basename)
         if self.dry_run:
-            run(['git', 'push', '--dry-run',
-                 os.path.join(self.base_url, self.repository),
-                '{}:{}'.format(local_branch, self.release_branch)],
-                cwd=cwd, check=True)
-            run(['git', 'push', '--dry-run',
-                 os.path.join(self.base_url, self.repository),
-                 '{}:{}'.format(local_branch, self.release_branch),
-                 '--tags'],
-                cwd=cwd, check=True)
+            if force:
+                run(['git', 'push', '--dry-run', '-f',
+                     os.path.join(self.base_url, self.repository),
+                    '{}:{}'.format(local_branch, self.release_branch)],
+                    cwd=cwd, check=True)
+                run(['git', 'push', '--dry-run', '-f',
+                     os.path.join(self.base_url, self.repository),
+                     '{}:{}'.format(local_branch, self.release_branch),
+                     '--tags'],
+                    cwd=cwd, check=True)
+            else:
+                run(['git', 'push', '--dry-run',
+                     os.path.join(self.base_url, self.repository),
+                    '{}:{}'.format(local_branch, self.release_branch)],
+                    cwd=cwd, check=True)
+                run(['git', 'push', '--dry-run',
+                     os.path.join(self.base_url, self.repository),
+                     '{}:{}'.format(local_branch, self.release_branch),
+                     '--tags'],
+                    cwd=cwd, check=True)
         else:
-            run(['git', 'push',
-                 os.path.join(self.base_url, self.repository),
-                '{}:{}'.format(local_branch, self.release_branch)],
-                cwd=cwd, check=True)
-            run(['git', 'push',
-                 os.path.join(self.base_url, self.repository),
-                 '{}:{}'.format(local_branch, self.release_branch),
-                 '--tags'],
-                cwd=cwd, check=True)
+            if force:
+                run(['git', 'push', '-f',
+                     os.path.join(self.base_url, self.repository),
+                    '{}:{}'.format(local_branch, self.release_branch)],
+                    cwd=cwd, check=True)
+                run(['git', 'push', '-f',
+                     os.path.join(self.base_url, self.repository),
+                     '{}:{}'.format(local_branch, self.release_branch),
+                     '--tags'],
+                    cwd=cwd, check=True)
+            else:
+                run(['git', 'push',
+                     os.path.join(self.base_url, self.repository),
+                    '{}:{}'.format(local_branch, self.release_branch)],
+                    cwd=cwd, check=True)
+                run(['git', 'push',
+                     os.path.join(self.base_url, self.repository),
+                     '{}:{}'.format(local_branch, self.release_branch),
+                     '--tags'],
+                    cwd=cwd, check=True)
 
     def _rebase(self):
         repo_basename = os.path.basename(self.repository)
