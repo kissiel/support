@@ -36,7 +36,7 @@ import subprocess
 from ruamel.yaml import YAML
 
 
-parts_do_not_tag = ['fwts', 'stress-ng']
+parts_do_not_tag = ['acpi-tools', 'fwts', 'stress-ng']
 parts_ignore = [
     'plainbox-provider-engineering-tests', 'tpm2-tss', 'tpm2-tools-3']
 
