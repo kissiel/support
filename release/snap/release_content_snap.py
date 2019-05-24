@@ -164,6 +164,7 @@ class Release():
     def _clone(self, repo, branch=None, target_dir=None, cwd=CWD):
         """Clone project repository."""
         repo_basename = os.path.basename(repo)
+        repo_basename = repo_basename.replace('.git', '')
         logger.info("".center(80, '#'))
         cmd = ['git', 'clone', repo]
         if target_dir:
@@ -206,6 +207,7 @@ class Release():
 
     def _get_change_log(self, part, new_tag, old_tag):
         repo_basename = os.path.basename(self._parts[part]['source'])
+        repo_basename = repo_basename.replace('.git', '')
         cmd = ['git', 'log', '--no-merges', "--pretty=format:+ %s",
                '{}...{}'.format(old_tag, new_tag)]
         return run(cmd, cwd=os.path.join(self.CWD, repo_basename),
@@ -213,6 +215,7 @@ class Release():
 
     def _tag(self, part):
         repo_basename = os.path.basename(self._parts[part]['source'])
+        repo_basename = repo_basename.replace('.git', '')
         cmd = ['git', 'describe', '--abbrev=40', '--tags']
         if part not in parts_do_not_tag:
             cmd += ['--match', 'snap-*T*']
@@ -247,12 +250,14 @@ class Release():
     def _tag_version(self, part, new_tag):
         """Tag the code version."""
         repo_basename = os.path.basename(self._parts[part]['source'])
+        repo_basename = repo_basename.replace('.git', '')
         run(['git', 'tag', new_tag, '-m', new_tag],
             cwd=os.path.join(self.CWD, repo_basename), check=True)
         logger.info("{} applied on {}".format(new_tag, repo_basename))
 
     def _push_changes(self, part):
         repo_basename = os.path.basename(self._parts[part]['source'])
+        repo_basename = repo_basename.replace('.git', '')
         if self.dry_run:
             run(['git', 'push', '--dry-run',
                  os.path.join(self.base_url, repo_basename), '--tags'],
