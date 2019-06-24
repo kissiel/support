@@ -135,7 +135,7 @@ fix_permissions(){
 
 if [ "$1" = "" ]; then
     # Releases we actually want to test should be included in target_list below.
-    target_list="trusty xenial bionic"
+    target_list="xenial bionic"
 else
     target_list="$1"
 fi
