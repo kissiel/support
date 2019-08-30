@@ -25,6 +25,7 @@
 # tag is required to create diff/changelog
 # Generate changelog as build artifact
 
+
 import argparse
 import datetime
 import logging
@@ -91,7 +92,6 @@ class Release():
     CWD = 'src'
 
     def __init__(self, args):
-        self.repository = args.repository
         self.branch = args.branch
         self.release_branch = args.release_branch
         self.finish_release = args.finish
@@ -99,12 +99,18 @@ class Release():
         self.increment_part = args.increment_part
         self.dry_run = args.dry_run
         self.user = args.user
+
         self.base_url = 'git+ssh://{}@git.launchpad.net'.format(self.user)
+        self.full_url = os.path.join(self.base_url, args.repository)
+        self.snap = os.path.basename(self.full_url)
+
         self._parts = {}
         self._previous_parts = {}
-        repo_basename = os.path.basename(self.repository)
+
+        self.clone_dir = os.path.join(self.CWD, self.snap)
         self._snapcraft_file = os.path.join(
-            self.CWD, repo_basename, 'snap', 'snapcraft.yaml')
+            self.clone_dir, 'snap', 'snapcraft.yaml')
+
         self._yaml = YAML()
         self._yaml.preserve_quotes = True
         self._yaml.indent(mapping=2, sequence=2, offset=2)
@@ -115,19 +121,16 @@ class Release():
     def dance(self):
         self._cleanup()
         if self.rebase_branch:
-            self._clone(os.path.join(self.base_url, self.repository),
-                        self.branch)
+            self._clone(self.full_url, self.branch)
             self._rebase()
             self._push_release_branch(self.branch, force=True)
         elif self.finish_release:
-            self._clone(os.path.join(self.base_url, self.repository),
-                        self.release_branch)
+            self._clone(self.full_url, self.release_branch)
             self._get_parts()
             self._finish_release()
             self._push_release_branch(self.release_branch)
         else:
-            self._clone(os.path.join(self.base_url, self.repository),
-                        self.branch)
+            self._clone(self.full_url, self.branch)
             self._get_previous_parts()
             self._get_parts()
             with open('changelog', 'w') as f:
@@ -182,15 +185,14 @@ class Release():
             raise SystemExit(1)
 
     def _get_previous_parts(self):
-        repo_basename = os.path.basename(self.repository)
-        cwd = os.path.join(self.CWD, repo_basename)
         cmd = ['git', 'describe', '--abbrev=0', '--tags', '--match', 'v*']
         last_release_tag = run(
-            cmd, cwd=cwd, check=True).stdout.decode().rstrip()
+            cmd, cwd=self.clone_dir, check=True).stdout.decode().rstrip()
         logger.info("Last release tag: {}".format(last_release_tag))
         cmd = ['git', '--no-pager', 'show', '{}:snap/snapcraft.yaml'.format(
                last_release_tag)]
-        previous_snapcraft_file = run(cmd, cwd=cwd, check=True).stdout.decode()
+        previous_snapcraft_file = run(
+            cmd, cwd=self.clone_dir, check=True).stdout.decode()
         data = self._yaml.load(previous_snapcraft_file)
         for k, v in data["parts"].items():
             if 'source-tag' in v:
@@ -278,80 +280,73 @@ class Release():
             self._yaml.dump(self._data, fp)
         logger.info("".center(80, '#'))
         logger.info("# Updating {} version in {}".format(
-            self.repository, self._snapcraft_file))
+            self.snap, self._snapcraft_file))
         logger.info("".center(80, '#'))
-        repo_basename = os.path.basename(self.repository)
-        cwd = os.path.join(self.CWD, repo_basename)
         bumpversion_output = run(
             ['bumpversion', self.increment_part, '--allow-dirty', '--list'],
-            check=True, cwd=cwd).stdout.decode()
+            check=True, cwd=self.clone_dir).stdout.decode()
         new_version = bumpversion_output.splitlines()[-1].replace(
             'new_version=', '')
         logger.info("Bump {} to version {}".format(
-            self.repository, new_version))
-        run(['git', 'add', '--all'], cwd=cwd, check=True)
+            self.snap, new_version))
+        run(['git', 'add', '--all'], cwd=self.clone_dir, check=True)
         run(['git', 'commit', '-m', 'Bump version number and tag parts'],
-            cwd=cwd, check=True)
+            cwd=self.clone_dir, check=True)
 
     def _push_release_branch(self, local_branch, force=False):
-        repo_basename = os.path.basename(self.repository)
-        cwd = os.path.join(self.CWD, repo_basename)
         if self.dry_run:
             if force:
                 run(['git', 'push', '--dry-run', '-f',
-                     os.path.join(self.base_url, self.repository),
-                    '{}:{}'.format(local_branch, self.release_branch)],
-                    cwd=cwd, check=True)
+                     self.full_url,
+                     '{}:{}'.format(local_branch, self.release_branch)],
+                    cwd=self.clone_dir, check=True)
                 run(['git', 'push', '--dry-run', '-f',
-                     os.path.join(self.base_url, self.repository),
+                     self.full_url,
                      '{}:{}'.format(local_branch, self.release_branch),
                      '--tags'],
-                    cwd=cwd, check=True)
+                    cwd=self.clone_dir, check=True)
             else:
                 run(['git', 'push', '--dry-run',
-                     os.path.join(self.base_url, self.repository),
-                    '{}:{}'.format(local_branch, self.release_branch)],
-                    cwd=cwd, check=True)
+                     self.full_url,
+                     '{}:{}'.format(local_branch, self.release_branch)],
+                    cwd=self.clone_dir, check=True)
                 run(['git', 'push', '--dry-run',
-                     os.path.join(self.base_url, self.repository),
+                     self.full_url,
                      '{}:{}'.format(local_branch, self.release_branch),
                      '--tags'],
-                    cwd=cwd, check=True)
+                    cwd=self.clone_dir, check=True)
         else:
             if force:
                 run(['git', 'push', '-f',
-                     os.path.join(self.base_url, self.repository),
-                    '{}:{}'.format(local_branch, self.release_branch)],
-                    cwd=cwd, check=True)
+                     self.full_url,
+                     '{}:{}'.format(local_branch, self.release_branch)],
+                    cwd=self.clone_dir, check=True)
                 run(['git', 'push', '-f',
-                     os.path.join(self.base_url, self.repository),
+                     self.full_url,
                      '{}:{}'.format(local_branch, self.release_branch),
                      '--tags'],
-                    cwd=cwd, check=True)
+                    cwd=self.clone_dir, check=True)
             else:
                 run(['git', 'push',
-                     os.path.join(self.base_url, self.repository),
-                    '{}:{}'.format(local_branch, self.release_branch)],
-                    cwd=cwd, check=True)
+                     self.full_url,
+                     '{}:{}'.format(local_branch, self.release_branch)],
+                    cwd=self.clone_dir, check=True)
                 run(['git', 'push',
-                     os.path.join(self.base_url, self.repository),
+                     self.full_url,
                      '{}:{}'.format(local_branch, self.release_branch),
                      '--tags'],
-                    cwd=cwd, check=True)
+                    cwd=self.clone_dir, check=True)
 
     def _rebase(self):
-        repo_basename = os.path.basename(self.repository)
-        cwd = os.path.join(self.CWD, repo_basename)
         run(['git', 'rebase', 'origin/{}'.format(self.rebase_branch)],
-            cwd=cwd, check=True)
+            cwd=self.clone_dir, check=True)
 
     def _finish_release(self):
         """Tag, reset parts tags, open next dev version and commit."""
-        repo_basename = os.path.basename(self.repository)
         release_tag = "v{}".format(self._data["version"])
         run(['git', 'tag', release_tag, '-m', release_tag],
-            cwd=os.path.join(self.CWD, repo_basename), check=True)
-        logger.info("{} applied on {}".format(release_tag, repo_basename))
+            cwd=self.clone_dir, check=True)
+        logger.info("{} applied on {}".format(release_tag, self.snap))
         logger.info("".center(80, '#'))
         logger.info("# Updating parts in {}".format(
             self._snapcraft_file))
@@ -364,19 +359,18 @@ class Release():
             self._yaml.dump(self._data, fp)
         logger.info("".center(80, '#'))
         logger.info("# Updating {} version in {}".format(
-            self.repository, self._snapcraft_file))
+            self.snap, self._snapcraft_file))
         logger.info("".center(80, '#'))
-        cwd = os.path.join(self.CWD, repo_basename)
         bumpversion_output = run(
             ['bumpversion', 'minor', '--allow-dirty', '--list'],
-            check=True, cwd=cwd).stdout.decode()
+            check=True, cwd=self.clone_dir).stdout.decode()
         new_version = bumpversion_output.splitlines()[-1].replace(
             'new_version=', '')
         logger.info("Bump {} to version {}".format(
-            self.repository, new_version))
-        run(['git', 'add', '--all'], cwd=cwd, check=True)
+            self.snap, new_version))
+        run(['git', 'add', '--all'], cwd=self.clone_dir, check=True)
         run(['git', 'commit', '-m', 'Bump version to next dev release'],
-            cwd=cwd, check=True)
+            cwd=self.clone_dir, check=True)
 
 
 if __name__ == "__main__":
