@@ -58,14 +58,14 @@ def main():
     try:
         proposed_branch = [
             b for b in repo.branches
-            if args.proposed_branch in b.path.split('/')[-1]][-1]
+            if args.proposed_branch == b.path.split('/')[-1]][-1]
     except IndexError:
         parser.error("{} branch was not found in Launchpad.".format(
             args.proposed_branch))
     try:
         target_branch = [
             b for b in repo.branches
-            if args.target_branch in b.path.split('/')[-1]][-1]
+            if args.target_branch == b.path.split('/')[-1]][-1]
     except IndexError:
         parser.error("{} branch was not found in Launchpad.".format(
             args.target_branch))
@@ -88,6 +88,7 @@ def main():
         merge_request.setStatus(
             status='Approved', revid=proposed_branch.commit_sha1)
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())
