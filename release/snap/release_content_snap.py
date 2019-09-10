@@ -33,6 +33,7 @@ import os
 import re
 import shutil
 import subprocess
+from urllib.parse import urlparse, urlunparse
 
 from ruamel.yaml import YAML
 
@@ -261,14 +262,14 @@ class Release():
     def _push_changes(self, part):
         repo_basename = os.path.basename(self._parts[part]['source'])
         repo_basename = repo_basename.replace('.git', '')
+        part_uri = urlunparse(urlparse(self._parts[part]['source'])._replace(
+            netloc=urlparse(self.base_url).netloc))
         if self.dry_run:
-            run(['git', 'push', '--dry-run',
-                 os.path.join(self.base_url, repo_basename), '--tags'],
+            run(['git', 'push', '--dry-run', part_uri, '--tags'],
                 cwd=os.path.join(self.CWD, repo_basename), check=True)
         else:
             logger.info("Pushing changes to origin")
-            run(['git', 'push',
-                 os.path.join(self.base_url, repo_basename), '--tags'],
+            run(['git', 'push', part_uri, '--tags'],
                 cwd=os.path.join(self.CWD, repo_basename), check=True)
 
     def _update_yaml(self):
