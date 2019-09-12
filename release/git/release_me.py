@@ -32,16 +32,16 @@ from guacamole import Command
 
 
 projects = (
-    'checkbox-converged',
     'checkbox-support',
     'checkbox-ng',
-    'plainbox',
     'plainbox-provider-checkbox',
+    'plainbox-provider-ipdt',
     'plainbox-provider-resource',
     'plainbox-provider-sru',
     'plainbox-provider-tpm2',
     'plainbox-provider-certification-client',
     'plainbox-provider-certification-server',
+    'checkbox-provider-phoronix',
 )
 
 
