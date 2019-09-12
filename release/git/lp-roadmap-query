@@ -49,7 +49,6 @@ def main():
 
     packages = {
         'checkbox-support': 'Checkbox Support Library',
-        'plainbox': 'PlainBox (Toolkit)',
         'plainbox-provider-certification-client': 'Provider for Plainbox - '
                                                   'Canonical Certification '
                                                   'Client',
@@ -60,8 +59,7 @@ def main():
         'plainbox-provider-resource': 'Provider for Plainbox - Resource',
         'plainbox-provider-sru': 'Provider for Plainbox - SRU',
         'plainbox-provider-tpm2': 'Provider for Plainbox - TPM2',
-        'checkbox-ng': 'Next Generation Checkbox (CLI)',
-        'checkbox-converged': 'Checkbox Converged',
+        'checkbox-ng': 'Next Generation Checkbox \(CLI\)',
     }
 
     lp = Launchpad.login_with(sys.argv[0], "production")
@@ -84,7 +82,7 @@ def main():
             if m.date_targeted.isoformat() not in milestone_codes:
                 milestone_codes[m.date_targeted.isoformat()] = ""
             mi_codes = [mi["value"] for mi in milestones if re.search(
-                "{}\s+{}".format(packages[p], m.name), mi["id"])]
+                r"{}\s+{}".format(packages[p], m.name), mi["id"])]
             if mi_codes:
                 milestone_codes[m.date_targeted.isoformat()] += \
                     "&field.milestone%3Alist={}".format(mi_codes[-1])
@@ -96,6 +94,7 @@ def main():
             "field.searchtext=&orderby=-importance&field.status%3Alist=NEW"
             "&field.status%3Alist=CONFIRMED&field.status%3Alist=TRIAGED"
             "&field.status%3Alist=INPROGRESS&field.status%3Alist=FIXCOMMITTED"
+            "&field.status%3Alist=FIXRELEASED"
             "&field.status%3Alist=INCOMPLETE_WITH_RESPONSE"
             "&field.status%3Alist=INCOMPLETE_WITHOUT_RESPONSE"
             "&assignee_option=any&field.assignee=&field.bug_reporter="
