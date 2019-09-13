@@ -25,6 +25,7 @@ public PPA to merge release branches in their respective trunks.
 
 import os
 import sys
+import time
 
 from argparse import ArgumentParser
 from datetime import datetime
@@ -46,6 +47,9 @@ def main():
                              "merge request")
     parser.add_argument("--self-approved", "-s", action='store_true',
                         help="Top approve the merge request")
+    parser.add_argument("--merged-timeout", default=1200, type=int,
+                        help="Wait for the branch merged status until timeout "
+                             "(in seconds)")
     parser.add_argument("--credentials",
                         help="Specify launchpad credentials", metavar="CRED",
                         default=os.getenv("LP_CREDENTIALS"))
@@ -87,6 +91,17 @@ def main():
             review_type='automated', vote='Approve', subject='self-approved')
         merge_request.setStatus(
             status='Approved', revid=proposed_branch.commit_sha1)
+        timeout_start = time.time()
+        while time.time() < timeout_start + args.merged_timeout:
+            merge_request.lp_refresh()
+            if merge_request.queue_status == 'Merged':
+                break
+            time.sleep(60)
+        else:
+            merge_request.lp_refresh()
+            if merge_request.queue_status != 'Merged':
+                print('queue_status: {}'.format(merge_request.queue_status))
+                return 1
     return 0
 
 
