@@ -460,19 +460,23 @@ class Release():
     def build(self):
         """Update the PPA recipe and kick-off the builds."""
         versions = json.load(open('versions.json'))
-        new_version = versions[self.project]['new']
+        try:
+            new_version = versions[self.project]['new']
+        except KeyError:
+            logger.warning('# Skipping {} build step'.format(self.project))
+            return
         if self.dry_run:
             logger.info('# Dry run: Skipping {} {} build step'.format(
                 self.project, new_version))
         else:
             if self.config['mode'] == 'testing':
                 output = run(
-                    "./support/release/git/lp-recipe-update-build {} --recipe {} -n {}".format(
-                        self.project, self.project+'-testing', new_version), shell=True, check=True).stdout.decode()
+                    "./support/release/git/lp-recipe-update-build {} --recipe {} -n {} --credentials $HOME/.hwcert_creds/credentials".format(
+                        self.project, self.project+'-testing', new_version), shell=True, check=True).stdout.decode().rstrip()
             else:
                 output = run(
-                    "./support/release/git/lp-recipe-update-build {} --recipe {} -n {}".format(
-                        self.project, self.project+'-stable', new_version), shell=True, check=True).stdout.decode()
+                    "./support/release/git/lp-recipe-update-build {} --recipe {} -n {} --credentials $HOME/.hwcert_creds/credentials".format(
+                        self.project, self.project+'-stable', new_version), shell=True, check=True).stdout.decode().rstrip()
             logger.info(output)
 
 
