@@ -24,6 +24,7 @@ Meant to be used as part of a checkbox release to the Hardware Certification
 public PPA and the ~checkbox-dev testing PPA.
 """
 
+import os
 import re
 import sys
 
@@ -43,9 +44,13 @@ def main():
     parser.add_argument('--new-version', '-n',
                         help="New version to use in the recipe "
                              "(for debian changelog) and bzr tags.")
+    parser.add_argument("--credentials",
+                        help="Specify launchpad credentials", metavar="CRED",
+                        default=os.getenv("LP_CREDENTIALS"))
     args = parser.parse_args()
 
-    lp = Launchpad.login_with(sys.argv[0], 'production')
+    lp = Launchpad.login_with(sys.argv[0], 'production', version='devel',
+                              credentials_file=args.credentials)
     try:
         project = lp.projects[args.project]
     except KeyError:
@@ -82,7 +87,8 @@ def main():
         text = re.sub(r"v\d\S+", "v{}".format(args.new_version), text)
         # debian-0.27.0-1 → debian-0.28.0_rc1-1
         text = re.sub(r"debian-(.*)$", "debian-{}-1".format(deb_tag), text)
-        build_recipe.setRecipeText(recipe_text=text)
+        build_recipe.recipe_text=text
+        build_recipe.lp_save()
         if build_recipe:
             for series in build_recipe.distroseries:
                 try:
