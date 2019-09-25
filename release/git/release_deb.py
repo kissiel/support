@@ -156,9 +156,18 @@ class Release():
                 self.merge()
         if self.step == 'build':
             logger.info("".center(80, '#'))
-            logger.info("# Update {} {} PPA recipe and kick-off the builds".format(self.project, self.config['mode']))
+            logger.info(
+                "# Update {} {} PPA recipe and kick-off the builds".format(
+                    self.project, self.config['mode']))
             logger.info("".center(80, '#'))
             self.build()
+        if self.step == 'milestone':
+            logger.info("".center(80, '#'))
+            logger.info("# Release the {} current milestone...".format(
+                self.project))
+            logger.info("".center(80, '#'))
+            if self.config['mode'] == 'stable':
+                self.milestone()
 
     @staticmethod
     def cleanup():
@@ -477,6 +486,21 @@ class Release():
                 output = run(
                     "./support/release/git/lp-recipe-update-build {} --recipe {} -n {} --credentials $HOME/.hwcert_creds/credentials".format(
                         self.project, self.project+'-stable', new_version), shell=True, check=True).stdout.decode().rstrip()
+            logger.info(output)
+
+    def milestone(self):
+        """Release the current milestone."""
+        versions = json.load(open('versions.json'))
+        try:
+            new_version = versions[self.project]['new']
+        except KeyError:
+            logger.warning('# Skipping {} milestone step'.format(self.project))
+            return
+        if self.dry_run:
+            logger.info('# Dry run: Skipping {} {} milestone step'.format(
+                self.project, new_version))
+        else:
+            output = run("./support/release/git/lp-release-milestone {} -m {} --credentials $HOME/.hwcert_creds/credentials".format(self.project, new_version), shell=True, check=True).stdout.decode()
             logger.info(output)
 
 
