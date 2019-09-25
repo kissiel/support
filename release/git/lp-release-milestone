@@ -23,6 +23,7 @@ Meant to be used as part of a checkbox release to the Hardware Certification
 public PPA.
 """
 
+import os
 import sys
 import time
 
@@ -38,9 +39,13 @@ def main():
                         help="Name of the targetted series, default trunk")
     parser.add_argument('--milestone-name', '-m',
                         help="Milestone to release")
+    parser.add_argument("--credentials",
+                        help="Specify launchpad credentials", metavar="CRED",
+                        default=os.getenv("LP_CREDENTIALS"))
     args = parser.parse_args()
 
-    lp = Launchpad.login_with(sys.argv[0], "production")
+    lp = Launchpad.login_with(sys.argv[0], 'production',
+                              credentials_file=args.credentials)
     series_name = args.series_name if args.series_name else "trunk"
     milestone_name = args.milestone_name if args.milestone_name else None
 
