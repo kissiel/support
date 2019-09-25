@@ -260,10 +260,12 @@ class Release():
         logger.info("{} applied on {}".format(new_tag, repo_basename))
 
     def _push_changes(self, part):
-        repo_basename = os.path.basename(self._parts[part]['source'])
-        repo_basename = repo_basename.replace('.git', '')
-        part_uri = urlunparse(urlparse(self._parts[part]['source'])._replace(
-            netloc=urlparse(self.base_url).netloc))
+        part_uri = self._parts[part]['source']
+        repo_basename = os.path.basename(part_uri).replace('.git', '')
+        parse_result = urlparse(part_uri)._replace(
+            scheme='git+ssh', netloc=urlparse(self.base_url).netloc)
+        part_uri = urlunparse(parse_result)
+        logger.info('URL target is {}'.format(part_uri))
         if self.dry_run:
             run(['git', 'push', '--dry-run', part_uri, '--tags'],
                 cwd=os.path.join(self.CWD, repo_basename), check=True)
