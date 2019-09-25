@@ -224,7 +224,7 @@ class Release():
             commits_behind = int(count)
         except TypeError:
             commits_behind = 0
-        if commits_behind:
+        if commits_behind and self.config['mode'] == 'testing':
             run(['git', 'merge', 'master', '-s', 'recursive', '-Xtheirs'],
                 cwd=self.clone_dir, check=True)
             return True
