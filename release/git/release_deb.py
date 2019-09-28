@@ -27,20 +27,6 @@ import shutil
 import subprocess
 
 
-projects = (
-    'checkbox-support',
-    'checkbox-ng',
-    'plainbox-provider-resource',
-    'plainbox-provider-checkbox',
-    'plainbox-provider-tpm2',
-    'plainbox-provider-ipdt',
-    'checkbox-provider-phoronix',
-    'plainbox-provider-sru',
-    'plainbox-provider-certification-client',
-    'plainbox-provider-certification-server',
-)
-
-
 class ConsoleFormatter(logging.Formatter):
 
     """Custom Logging Formatter to ease copy paste of commands."""
@@ -351,6 +337,8 @@ class Release():
     def changelog():
         """Create the changelog for released projects."""
         versions = json.load(open('versions.json'))
+        config = json.load(open(args.config))
+        projects = [key for key in config.keys() if 'box' in key]
         logger.info("".center(80, '#'))
         logger.info("# Create the changelog...")
         logger.info("".center(80, '#'))
@@ -529,6 +517,8 @@ if __name__ == "__main__":
         if args.project:
             Release(args).run()
         else:
+            config = json.load(open(args.config))
+            projects = [key for key in config.keys() if 'box' in key]
             for project in projects:
                 args.project = project
                 Release(args).run()
