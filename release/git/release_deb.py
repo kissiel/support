@@ -519,6 +519,12 @@ if __name__ == "__main__":
         else:
             config = json.load(open(args.config))
             projects = [key for key in config.keys() if 'box' in key]
+            release_required = False
+            for project in projects:
+                if config[project]:
+                    release_required = True
+            if not release_required:
+                raise SystemExit('Release not required, aborting...')
             for project in projects:
                 args.project = project
                 Release(args).run()
