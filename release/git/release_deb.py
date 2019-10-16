@@ -445,7 +445,7 @@ class Release():
         if self.dry_run:
             run(['git', 'push', '--dry-run', '{}/~{}/{}'.format(
                 self.base_url, self.target_user, self.project),
-                '--delete', 'release'], cwd=self.clone_dir, check=True)
+                '--delete', 'release'], cwd=self.clone_dir)
         else:
             output = run("./support/release/git/lp-propose-merge ~{}/{} -s --merged-timeout 3600 --credentials $HOME/.hwcert_creds/credentials".format(self.target_user, self.project), shell=True, check=True).stdout.decode()
             logger.info(output)
