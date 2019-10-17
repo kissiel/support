@@ -223,7 +223,7 @@ class Release():
             shell=True, cwd=self.clone_dir, check=True).stdout
         version_change = run(
             'git diff $(git describe --abbrev=0 --tags --match "v{}")'
-            ' -G "__version__|current_version|version="'.format(
+            ' -G "__version__|current_version|^\s*version="'.format(
                 version_pattern),
             shell=True, cwd=self.clone_dir, check=True).stdout
         if code_change == version_change:
