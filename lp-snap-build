@@ -30,6 +30,7 @@ from argparse import ArgumentParser
 
 
 def main():
+    channels = ['stable', 'beta', 'candidate', 'edge']
     parser = ArgumentParser('Invoke a snap build')
     parser.add_argument('snap', help="name of the snap")
     parser.add_argument('--owner', '-o',
@@ -41,6 +42,8 @@ def main():
     parser.add_argument("--credentials",
                         help="Specify launchpad credentials", metavar="CRED",
                         default=os.getenv("LP_CREDENTIALS"))
+    parser.add_argument('--snapcraft', type=str, choices=channels,
+                        default='stable', help='the snapcraft channel to use')
     args = parser.parse_args()
 
     lp = Launchpad.login_with(sys.argv[0], 'production', version='devel',
@@ -55,9 +58,10 @@ def main():
     archive = ubuntu.main_archive
     series = ubuntu.getSeries(name_or_version=args.series)
     arch = series.getDistroArchSeries(archtag=args.arch)
+    channels = {'snapcraft': args.snapcraft}
     try:
         build = snap.requestBuild(pocket='Updates', archive=archive,
-                                  distro_arch_series=arch)
+                                  distro_arch_series=arch, channels=channels)
         print("Check build status: " + build.web_link)
     except BadRequest as e:
         print(e)
@@ -65,6 +69,7 @@ def main():
     except:
         print("Not allowed, check your permissions")
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())
