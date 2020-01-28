@@ -18,13 +18,17 @@
 Benchmark Checkbox with different scenarios.
 
 This program runs a particular launcher and measures how long it took to run
-it.  Place this file and the benchmarking-provider provider in the checkbox-ng
-tree and run it.
+it. You can run this script from anywhere, just use checkbox-ng's path as the
+argument. If you don't have access to the Internet from where the script is run
+then use --provider-repository option to point to a benchmarking-provider git
+tree.
 """
 
+import argparse
 import contextlib
 import glob
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -36,13 +40,12 @@ from pprint import pprint
 
 def prepare_venv(venv_path):
     """Create venv and develop the benchmarking provider in it."""
-    os.chdir('..')
+    os.chdir('checkbox-ng')
     subprocess.run(
         ['./mk-venv', venv_path],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
-    manage_py = os.path.join(
-        os.getcwd(), 'support', 'benchmarking-provider', 'manage.py')
-    os.chdir(os.path.join(venv_path, '..'))
+    manage_py = os.path.join('benchmarking-provider', 'manage.py')
+    os.chdir('..')
     subprocess.run(
         ". {}; {} develop -d $PROVIDERPATH".format(
             os.path.join('venv', 'bin', 'activate'), manage_py),
@@ -93,17 +96,23 @@ def run_locally(launcher):
 
 def main():
     """Entry point."""
-    if not os.path.isfile(os.path.join(
-            'benchmarking-provider', 'manage.py')):
-        msg = (
-            "It seems you don't have benchmarking provider cloned.\n"
-            "clone it with: git clone https://git.launchpad.net/"
-            "~checkbox-dev/checkbox/+git/benchmarking-provider")
-        raise SystemExit(msg)
-
+    parser = argparse.ArgumentParser("Checkbox benchmark")
+    parser.add_argument(
+        'checkbox_path', help='Path to where Checkbox can be found')
+    parser.add_argument(
+        '--provider-repository',
+        help='Location of the benchmarking provider repository',
+        default=(
+            'https://git.launchpad.net/~checkbox-dev/'
+            'checkbox/+git/benchmarking-provider'))
+    args = parser.parse_args()
     with tempfile.TemporaryDirectory(prefix='cbox-bench') as tmpdir:
-        bench_dir = os.path.split(os.path.abspath(__file__))[0]
-        os.chdir(bench_dir)
+        os.chdir(tmpdir)
+        shutil.copytree(
+            args.checkbox_path, 'checkbox-ng')
+        subprocess.run(
+            ['git', 'clone', args.provider_repository,
+             'benchmarking-provider'], check=True)
         launchers = glob.glob('benchmarking-provider/launcher-*')
         scenarios = [s.replace(
             'benchmarking-provider/launcher-', '') for s in launchers]
@@ -111,10 +120,10 @@ def main():
         prepare_venv(os.path.join(tmpdir, 'venv'))
         for scenario in scenarios:
             local_result = run_locally(os.path.join(
-                bench_dir, 'benchmarking-provider',
+                tmpdir, 'benchmarking-provider',
                 'launcher-{}'.format(scenario)))
             remote_result = run_via_remote(os.path.join(
-                bench_dir, 'benchmarking-provider',
+                tmpdir, 'benchmarking-provider',
                 'launcher-{}'.format(scenario)))
             results['local-{}'.format(scenario)] = local_result
             results['remote-{}'.format(scenario)] = remote_result
